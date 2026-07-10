@@ -1,0 +1,105 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dit-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: passwrd123
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init-multiple-dbs.sql:/docker-entrypoint-initdb.d/init-multiple-dbs.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dit-network
+
+  books-service:
+    build:
+      context: ./backend/books-service
+    container_name: dit-books-service
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://admin:passwrd123@postgres:5432/books_db
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me-in-production}
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - dit-network
+
+  users-service:
+    build:
+      context: ./backend/users-service
+    container_name: dit-users-service
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://admin:passwrd123@postgres:5432/users_db
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me-in-production}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@dit-library.sn}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-passwrd123}
+      ADMIN_FULL_NAME: ${ADMIN_FULL_NAME:-Personnel Administratif DIT}
+    ports:
+      - "8002:8002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - dit-network
+
+  loans-service:
+    build:
+      context: ./backend/loans-service
+    container_name: dit-loans-service
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://admin:passwrd123@postgres:5432/loans_db
+      BOOKS_SERVICE_URL: http://books-service:8001
+      USERS_SERVICE_URL: http://users-service:8002
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me-in-production}
+    ports:
+      - "8003:8003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      books-service:
+        condition: service_started
+      users-service:
+        condition: service_started
+    networks:
+      - dit-network
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_BOOKS_API_URL: http://localhost:8001
+        VITE_USERS_API_URL: http://localhost:8002
+        VITE_LOANS_API_URL: http://localhost:8003
+    container_name: dit-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - books-service
+      - users-service
+      - loans-service
+    networks:
+      - dit-network
+
+networks:
+  dit-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
