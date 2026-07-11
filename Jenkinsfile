@@ -53,9 +53,9 @@ pipeline {
         stage('Tests des microservices') {
             steps {
                 sh '''
-                    docker-compose up -d postgres
+                    docker compose up -d postgres
                     sleep 8
-                    docker-compose up -d books-service users-service loans-service
+                    docker compose up -d books-service users-service loans-service
                     sleep 8
 
                     echo "-- Test de santé books-service --"
@@ -74,8 +74,8 @@ pipeline {
             steps {
                 echo "Déploiement automatique avec Docker Compose"
                 sh '''
-                    docker-compose up -d
-                    docker-compose ps
+                    docker compose up -d
+                    docker compose ps
                 '''
             }
         }
