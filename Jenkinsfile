@@ -45,7 +45,6 @@ pipeline {
 
         stage('Build des images Docker') {
             steps {
-                // Utilisation de docker-compose sans --parallel
                 sh 'docker compose build'
             }
         }
@@ -96,7 +95,8 @@ pipeline {
         }
         failure {
             echo "❌ Échec du pipeline — nettoyage des conteneurs."
-            sh 'docker-compose down || true'
+            // CORRIGÉ : Utilisation de 'docker compose' au lieu de 'docker-compose'
+            sh 'docker compose down || true'
         }
         always {
             sh 'docker system prune -f || true'
