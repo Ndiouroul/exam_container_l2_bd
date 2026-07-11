@@ -13,17 +13,15 @@ pipeline {
     }
 
     stages {
-        stage('Installation Docker Compose') {
+        stage('Vérification Docker Compose') {
             steps {
                 sh '''
-                    if ! command -v docker-compose > /dev/null 2>&1; then
-                        echo "Installation de docker-compose..."
-                        curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o docker-compose
-                        chmod +x docker-compose
-                        mv docker-compose /usr/local/bin/docker-compose
-                    else
-                        echo "docker-compose déjà présent : $(docker-compose --version)"
+                    if ! docker compose version > /dev/null 2>&1; then
+                        echo "❌ Le plugin 'docker compose' (v2) n'est pas disponible sur cet agent."
+                        echo "Installe-le via 'apt install docker-compose-plugin' ou mets à jour Docker Engine."
+                        exit 1
                     fi
+                    echo "✅ $(docker compose version)"
                 '''
             }
         }
@@ -60,16 +58,16 @@ pipeline {
 
         stage('Build des images Docker') {
             steps {
-                sh 'docker-compose build'
+                sh 'docker compose build'
             }
         }
 
         stage('Tests des microservices') {
             steps {
                 sh '''
-                    docker-compose up -d postgres
+                    docker compose up -d postgres
                     sleep 8
-                    docker-compose up -d books-service users-service loans-service
+                    docker compose up -d books-service users-service loans-service
                     sleep 8
 
                     echo "-- Test de santé des services --"
@@ -83,8 +81,8 @@ pipeline {
         stage('Déploiement') {
             steps {
                 sh '''
-                    docker-compose up -d
-                    docker-compose ps
+                    docker compose up -d
+                    docker compose ps
                 '''
             }
         }
@@ -102,7 +100,7 @@ pipeline {
         }
         failure {
             echo "❌ Échec du pipeline."
-            sh 'docker-compose down || true'
+            sh 'docker compose down || true'
         }
         always {
             sh 'docker system prune -f || true'
