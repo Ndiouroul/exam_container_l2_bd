@@ -16,13 +16,13 @@ pipeline {
         stage('Installation Docker Compose') {
             steps {
                 sh '''
-                    # Si docker-compose est absent, on l'installe
-                    if ! command -v docker-compose &> /dev/null; then
+                    if ! command -v docker-compose > /dev/null 2>&1; then
                         echo "Installation de docker-compose..."
                         curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o docker-compose
                         chmod +x docker-compose
-                        # On déplace le binaire
-                        sudo mv docker-compose /usr/local/bin/docker-compose
+                        mv docker-compose /usr/local/bin/docker-compose
+                    else
+                        echo "docker-compose déjà présent : $(docker-compose --version)"
                     fi
                 '''
             }
