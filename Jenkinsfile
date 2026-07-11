@@ -13,6 +13,21 @@ pipeline {
     }
 
     stages {
+        stage('Installation Docker Compose') {
+            steps {
+                sh '''
+                    # Si docker compose est absent, on l'installe
+                    if ! command -v docker compose &> /dev/null; then
+                        echo "Installation de docker compose..."
+                        curl -L "https://github.com/docker/compose/releases/latest/download/docker compose-$(uname -s)-$(uname -m)" -o docker compose
+                        chmod +x docker compose
+                        # On déplace le binaire
+                        sudo mv docker compose /usr/local/bin/docker compose
+                    fi
+                '''
+            }
+        }
+
         stage('Checkout') {
             steps {
                 echo "Récupération du code depuis GitHub"
@@ -67,7 +82,6 @@ pipeline {
 
         stage('Déploiement') {
             steps {
-                echo "Déploiement automatique avec Docker Compose"
                 sh '''
                     docker compose up -d
                     docker compose ps
@@ -77,20 +91,17 @@ pipeline {
 
         stage('Vérification post-déploiement') {
             steps {
-                sh '''
-                    sleep 5
-                    curl -f http://localhost:3000 || (echo "Frontend indisponible" && exit 1)
-                '''
+                sh 'sleep 5 && curl -f http://localhost:3000'
             }
         }
     }
 
     post {
         success {
-            echo "✅ Pipeline terminé avec succès — plateforme déployée."
+            echo "✅ Pipeline terminé avec succès."
         }
         failure {
-            echo "❌ Échec du pipeline — nettoyage des conteneurs."
+            echo "❌ Échec du pipeline."
             sh 'docker compose down || true'
         }
         always {
