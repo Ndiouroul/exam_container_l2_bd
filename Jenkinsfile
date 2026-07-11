@@ -15,14 +15,16 @@ pipeline {
     stages {
         stage('Vérification Docker Compose') {
             steps {
-                sh '''
-                    if ! docker compose version > /dev/null 2>&1; then
-                        echo "❌ Le plugin 'docker compose' (v2) n'est pas disponible sur cet agent."
-                        echo "Installe-le via 'apt install docker-compose-plugin' ou mets à jour Docker Engine."
-                        exit 1
-                    fi
-                    echo "✅ $(docker compose version)"
-                '''
+                script {
+                    if (sh(script: 'docker compose version > /dev/null 2>&1', returnStatus: true) == 0) {
+                        env.COMPOSE_CMD = 'docker compose'
+                    } else if (sh(script: 'command -v docker-compose > /dev/null 2>&1', returnStatus: true) == 0) {
+                        env.COMPOSE_CMD = 'docker-compose'
+                    } else {
+                        error("Ni 'docker compose' (v2) ni 'docker-compose' (v1) ne sont disponibles sur cet agent.")
+                    }
+                    echo "✅ Commande Compose détectée : ${env.COMPOSE_CMD}"
+                }
             }
         }
 
@@ -58,32 +60,32 @@ pipeline {
 
         stage('Build des images Docker') {
             steps {
-                sh 'docker compose build'
+                sh "${env.COMPOSE_CMD} build"
             }
         }
 
         stage('Tests des microservices') {
             steps {
-                sh '''
-                    docker compose up -d postgres
+                sh """
+                    ${env.COMPOSE_CMD} up -d postgres
                     sleep 8
-                    docker compose up -d books-service users-service loans-service
+                    ${env.COMPOSE_CMD} up -d books-service users-service loans-service
                     sleep 8
 
                     echo "-- Test de santé des services --"
                     curl -f http://localhost:8001/health
                     curl -f http://localhost:8002/health
                     curl -f http://localhost:8003/health
-                '''
+                """
             }
         }
 
         stage('Déploiement') {
             steps {
-                sh '''
-                    docker compose up -d
-                    docker compose ps
-                '''
+                sh """
+                    ${env.COMPOSE_CMD} up -d
+                    ${env.COMPOSE_CMD} ps
+                """
             }
         }
 
@@ -100,7 +102,7 @@ pipeline {
         }
         failure {
             echo "❌ Échec du pipeline."
-            sh 'docker compose down || true'
+            sh "${env.COMPOSE_CMD ?: 'docker-compose'} down || true"
         }
         always {
             sh 'docker system prune -f || true'
