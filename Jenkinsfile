@@ -46,7 +46,7 @@ pipeline {
         stage('Build des images Docker') {
             steps {
                 // Utilisation de docker-compose sans --parallel
-                sh 'docker-compose build'
+                sh 'docker compose build'
             }
         }
 
