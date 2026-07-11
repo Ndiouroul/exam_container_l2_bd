@@ -3,7 +3,8 @@ pipeline {
 
     environment {
         COMPOSE_PROJECT_NAME = "dit-library"
-        DOCKER_BUILDKIT = "1"
+        DOCKER_BUILDKIT = "0"
+        COMPOSE_DOCKER_CLI_BUILD = "0"
     }
 
     options {
@@ -102,7 +103,7 @@ pipeline {
         }
         failure {
             echo "❌ Échec du pipeline."
-            sh "${env.COMPOSE_CMD ?: 'docker compose'} down || true"
+            sh "${env.COMPOSE_CMD ?: 'docker-compose'} down || true"
         }
         always {
             sh 'docker system prune -f || true'
