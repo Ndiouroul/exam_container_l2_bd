@@ -1,0 +1,25 @@
+cat > .gitignore << 'EOF'
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node
+node_modules/
+dist/
+frontend/dist/
+
+# Docker
+*.log
+
+# Env
+.env
+.DS_Store
+
+# Jenkins (donnees sensibles - credentials, secrets, historique)
+jenkins_home/
+
+# IDE
+.idea/
+EOF

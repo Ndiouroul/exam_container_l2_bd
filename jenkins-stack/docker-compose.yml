@@ -1,0 +1,19 @@
+services:
+  jenkins:
+    build:
+      context: ../jenkins
+    container_name: dit-jenkins
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - dit-network
+    user: root
+
+networks:
+  dit-network:
+    external: true
+    name: dit-library_dit-network
