@@ -76,9 +76,9 @@ pipeline {
                 withEnv(['JENKINS_NODE_COOKIE=dontKillMe']) {
                     sh """
                         ${env.COMPOSE_CMD} up -d postgres
-                        sleep 8
+                        sleep 15
                         ${env.COMPOSE_CMD} up -d books-service users-service loans-service
-                        sleep 8
+                        sleep 15
 
                         echo "-- Test de santé des services (via réseau Docker interne) --"
                         docker exec dit-books-service curl -f http://localhost:8001/health
