@@ -79,12 +79,24 @@ pipeline {
                         sleep 15
                         ${env.COMPOSE_CMD} up -d books-service users-service loans-service
                         sleep 15
-
-                        echo "-- Test de santé des services (via réseau Docker interne) --"
-                        docker exec dit-books-service curl -f http://localhost:8001/health
-                        docker exec dit-users-service curl -f http://localhost:8002/health
-                        docker exec dit-loans-service curl -f http://localhost:8003/health
                     """
+                    script {
+                        try {
+                            sh """
+                                echo "-- Test de santé des services (via réseau Docker interne) --"
+                                docker exec dit-books-service curl -f http://localhost:8001/health
+                                docker exec dit-users-service curl -f http://localhost:8002/health
+                                docker exec dit-loans-service curl -f http://localhost:8003/health
+                            """
+                        } catch (err) {
+                            echo "❌ Échec du health check — logs des conteneurs :"
+                            sh "docker logs dit-books-service --tail 50 || true"
+                            sh "docker logs dit-users-service --tail 50 || true"
+                            sh "docker logs dit-loans-service --tail 50 || true"
+                            sh "docker logs dit-postgres --tail 50 || true"
+                            error("Health check failed — voir logs ci-dessus")
+                        }
+                    }
                 }
             }
         }
